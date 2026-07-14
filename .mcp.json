@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aidc-design-engine": {
+      "command": "npx",
+      "args": ["-y", "aidc-mcp-server"]
+    }
+  }
+}

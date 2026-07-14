@@ -1,0 +1,14 @@
+{
+  "name": "aidc-ai",
+  "owner": {
+    "name": "AIDC-AI.IO",
+    "url": "https://aidc-ai.io"
+  },
+  "plugins": [
+    {
+      "name": "aidc-design-engine",
+      "source": "./",
+      "description": "AI data center design engine — size, validate, and lay out AI/GPU data centers (NVIDIA Hopper / Blackwell / Vera Rubin) with deterministic rack, PUE, MVA, cost, and layout outputs backed by aidc-ai.io."
+    }
+  ]
+}
