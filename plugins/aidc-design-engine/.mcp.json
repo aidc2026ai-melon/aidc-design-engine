@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "aidc-design-engine": {
+      "type": "http",
+      "url": "https://aidc-ai.io/api/mcp",
+      "bearer_token_env_var": "AIDC_API_KEY"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "aidc-design-engine",
+  "version": "0.1.0",
+  "description": "Deterministic AI data-center sizing, validation, and layout through the AIDC-AI.IO design engine.",
+  "author": {
+    "name": "AIDC-AI.IO",
+    "email": "contact@aidc-ai.io",
+    "url": "https://aidc-ai.io"
+  },
+  "homepage": "https://aidc-ai.io",
+  "repository": "https://github.com/aidc2026ai-melon/aidc-design-engine",
+  "license": "MIT",
+  "keywords": [
+    "ai-data-center",
+    "data-center",
+    "nvidia",
+    "blackwell",
+    "rubin",
+    "liquid-cooling",
+    "pue",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "AIDC Design Engine",
+    "shortDescription": "Size, validate, and lay out AI data centers",
+    "longDescription": "Use the deterministic AIDC-AI.IO engine to size AI data centers, validate electrical, cooling, layout, safety, and data rules, and generate rack and site layouts for Hopper, Blackwell, and Vera Rubin deployments.",
+    "developerName": "AIDC-AI.IO",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://aidc-ai.io",
+    "privacyPolicyURL": "https://aidc-ai.io/privacy",
+    "termsOfServiceURL": "https://aidc-ai.io/terms",
+    "defaultPrompt": [
+      "Design and validate a 50 MW Vera Rubin data center.",
+      "Check whether 60 MW of Blackwell fits on a 20,000 m2 site.",
+      "Compare Hopper, Blackwell, and Rubin for the same site."
+    ],
+    "brandColor": "#10B981",
+    "screenshots": []
+  }
+}

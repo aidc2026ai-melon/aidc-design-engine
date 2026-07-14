@@ -1,25 +1,45 @@
 # AIDC Design Engine Plugin
 
-Size, validate, and lay out AI data centers directly from Claude — for NVIDIA
+Size, validate, and lay out AI data centers from Claude or Codex - for NVIDIA
 Hopper, Blackwell (GB200 NVL72), and Rubin (Vera Rubin NVL72) deployments.
 Backed by the deterministic engineering engine at [aidc-ai.io](https://aidc-ai.io).
+
+## Install
+
+### Claude
+
+```bash
+claude plugin marketplace add aidc2026ai-melon/aidc-design-engine
+claude plugin install aidc-design-engine@aidc-ai
+```
+
+### Codex
+
+```bash
+codex plugin marketplace add aidc2026ai-melon/aidc-design-engine
+codex plugin add aidc-design-engine@aidc-ai
+```
 
 ## What's inside
 
 | Component | Purpose |
 |---|---|
-| MCP server `aidc-design-engine` | Three tools — `design` (rack count, PUE, MVA, cost, schedule), `validate` (electrical/cooling/layout/safety rule QA with severity-classified findings + RFIs), `layout` (rack plan in mm + site plan blocks) |
-| Skill `aidc-design-engine` | Encodes the design → validate → layout → report workflow, GPU-generation density defaults, medium-voltage conventions (22.9 kV KR / 11–33 kV EU / 13.8–34.5 kV US), and a standard design-basis report template |
+| MCP server `aidc-design-engine` | Three tools: `design` (rack count, PUE, MVA, cost, schedule), `validate` (electrical/cooling/layout/safety rule QA with severity-classified findings and RFIs), and `layout` (rack plan in mm plus site plan blocks) |
+| Skill `aidc-design-engine` | Encodes the design -> validate -> layout -> report workflow, GPU-generation density defaults, validation gating, count semantics, and a standard design-basis report template |
+| Codex marketplace | Connects directly to `https://aidc-ai.io/api/mcp`; the Claude plugin continues to use `npx aidc-mcp-server` |
 
 ## Requirements
 
-- Node.js ≥ 18 (the MCP server runs via `npx -y aidc-mcp-server`)
+- Claude: Node.js >= 18 (the MCP server runs via `npx -y aidc-mcp-server`)
+- Codex: no local Node.js requirement; it uses the Remote MCP endpoint
 - Internet access to `https://aidc-ai.io`
 
 ## Authentication (optional)
 
-Anonymous use is allowed (10 requests/hour). For the registered tier
-(100 requests/hour), set the environment variable before launching:
+Anonymous use is allowed (10 requests/hour). The Codex Remote MCP transport
+maps the following environment variable to a Bearer token. Claude stdio also
+uses it when the installed `aidc-mcp-server` release supports bearer
+forwarding:
 
 ```
 AIDC_API_KEY=aidc_live_...
