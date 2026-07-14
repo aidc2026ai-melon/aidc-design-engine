@@ -25,7 +25,7 @@ codex plugin add aidc-design-engine@aidc-ai
 | Component | Purpose |
 |---|---|
 | MCP server `aidc-design-engine` | Three tools: `design` (rack count, PUE, MVA, cost, schedule), `validate` (electrical/cooling/layout/safety rule QA with severity-classified findings and RFIs), and `layout` (rack plan in mm plus site plan blocks) |
-| Skill `aidc-design-engine` | Encodes the design -> validate -> layout -> report workflow, GPU-generation density defaults, validation gating, count semantics, and a standard design-basis report template |
+| Skill `aidc-design-engine` | Encodes one canonical DesignRequest across design -> validate -> layout -> report, GPU-generation density/PUE defaults, validation gating, rack-count and MVA semantics, and a standard design-basis report template |
 | Codex marketplace | Connects directly to `https://aidc-ai.io/api/mcp`; the Claude plugin continues to use `npx aidc-mcp-server` |
 
 ## Requirements
@@ -44,6 +44,10 @@ forwarding:
 ```
 AIDC_API_KEY=aidc_live_...
 ```
+
+Claude stdio key forwarding requires `aidc-mcp-server` 0.2.2 or later; npm
+`latest` is 0.2.2 as of 2026-07-14. The Codex Remote MCP transport forwards
+the same variable directly as a Bearer token.
 
 ## Example prompts
 
