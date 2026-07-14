@@ -1,0 +1,20 @@
+{
+  "name": "aidc-ai",
+  "interface": {
+    "displayName": "AIDC-AI.IO"
+  },
+  "plugins": [
+    {
+      "name": "aidc-design-engine",
+      "source": {
+        "source": "local",
+        "path": "./plugins/aidc-design-engine"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
