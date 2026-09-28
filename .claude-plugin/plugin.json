@@ -1,7 +1,7 @@
 {
   "name": "aidc-design-engine",
-  "version": "0.1.0",
-  "description": "AI data center design engine — size (rack count, PUE, MVA, cost, schedule), validate (electrical/cooling/layout/safety rule QA), and lay out AI/GPU data centers for NVIDIA Hopper, Blackwell, and Vera Rubin deployments. Backed by aidc-ai.io.",
+  "version": "0.1.1",
+  "description": "AI data center design engine \u2014 size (rack count, PUE, MVA, cost, schedule), validate (electrical/cooling/layout/safety rule QA), and lay out AI/GPU data centers for NVIDIA Hopper, Blackwell, and Vera Rubin deployments. Backed by aidc-ai.io.",
   "author": {
     "name": "AIDC-AI.IO"
   },

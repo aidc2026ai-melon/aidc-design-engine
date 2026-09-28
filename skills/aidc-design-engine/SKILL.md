@@ -1,167 +1,144 @@
 ---
 name: aidc-design-engine
 description: >-
-  Size, validate, and lay out AI data centers using the aidc-design-engine MCP
-  tools (design, validate, layout) backed by https://aidc-ai.io. Use this skill
-  whenever the user asks to dimension, plan, estimate, sanity-check, or sketch
-  an AI/GPU data center — including questions about rack count, rack density
-  (kW/rack), PUE, MVA / medium-voltage power (22.9 kV, 11/33 kV, 13.8/34.5 kV),
-  liquid cooling / CDU sizing, NVIDIA Hopper / Blackwell / Rubin (Vera Rubin
-  NVL72) deployments, site feasibility ("does X MW fit on Y m²?"), CAPEX or
-  schedule ballparks, or a rack/site layout plan. Trigger even if the user
-  doesn't name the tools — e.g. "can I fit 60 MW of GB200 on this lot?".
-compatibility: Requires the aidc-design-engine MCP server (npx aidc-mcp-server).
+  Size, validate, and lay out AI data centers with the deterministic
+  AIDC-AI.IO MCP tools. Use for AI/GPU data-center rack counts, rack density,
+  PUE, MVA, electrical and cooling validation, CDU sizing, site feasibility,
+  CAPEX and schedule allowances, or rack/site layout for NVIDIA Hopper,
+  Blackwell, and Vera Rubin deployments.
 ---
 
-# AIDC Design Engine — AI Data Center Design & QA Workflow
+# AIDC Design Engine
 
-You have three deterministic engineering tools from the `aidc-design-engine`
-MCP server, wrapping the public engine at https://aidc-ai.io. No LLM runs
-inside the engine — results are reproducible, and every response carries an
-`engineVersion`, a `requestId`, and a citation.
+Use the three deterministic MCP tools in this order:
 
-| Tool | Role | Call when |
-|---|---|---|
-| `design` | Sizing: racks, PUE, MVA, optional cost (KRW) & schedule (months) | Always first |
-| `validate` | Rule QA: severity-classified findings + RFI items | After design, before layout |
-| `layout` | Physical plan: rack plan (mm grid) + site plan blocks | Only after validate shows no blocking findings |
+1. `design`
+2. `validate`
+3. `layout`, only when validation has no blocking finding
 
-## The canonical DesignRequest
+The engine does not run an LLM. Preserve its evidence, warnings, RFIs,
+`engineVersion`, and `requestId` in the final answer.
 
-Build ONE request object and reuse it across all three tools — this keeps a
-multi-step study internally consistent:
+## Build One Canonical Input
+
+Build one `DesignRequest` object and reuse it unchanged across all three MCP
+tools. Only the wrapper changes: `design` receives it directly, `validate`
+receives it as `rawInput`, and `layout` receives it as `design`.
+
+Canonical object example:
 
 ```json
 {
-  "itLoadMw": 25,
+  "itLoadMw": 50,
+  "hallCount": 2,
   "rackDensityKw": 150,
   "gpuGen": "rubin",
-  "siteAreaSqm": 12000,
+  "siteAreaSqm": 15000,
   "region": "metropolitan",
-  "options": { "redundancy": "n_plus_1", "coolingMode": "liquid" }
+  "options": {
+    "redundancy": "n_plus_1",
+    "coolingMode": "liquid",
+    "pueTarget": 1.2
+  }
 }
 ```
 
-Tool call shapes differ — do not pass the bare object everywhere:
+Allowed values:
 
-- `design` → the DesignRequest directly
-- `validate` → `{ "rawInput": DesignRequest }` OR `{ "designSummary": {...} }`
-  OR a `sessionId` from a previous engine session
-- `layout` → `{ "design": DesignRequest }` (plus optional `siteCentroid`)
+- `gpuGen`: `hopper`, `blackwell`, or `rubin`
+- `region`: `metropolitan` or `regional`
+- `options.redundancy`: `n`, `n_plus_1`, or `2n`
+- `options.coolingMode`: `air`, `hybrid`, or `liquid`
+- `options.pueTarget`: 1.0 through 2.5
 
-## Workflow: design → validate → layout → report
+`hallCount` is optional and ranges from 1 through 48. `parcels` and
+`customInputs` are optional project evidence. Do not invent parcel geometry.
 
-Follow this order. Skipping validate and jumping to layout produces plans
-built on an unchecked design basis — the layout will look authoritative while
-hiding blocking electrical or cooling problems.
+Reuse the selected OPR/BOD and source-backed catalog inputs. Required input
+fields such as `rackDensityKw` do not have MCP defaults; do not replace
+missing project inputs with GPU-generation constants from prose. State any
+planning assumption explicitly and keep it separate from selected equipment.
 
-### Step 1 — Assemble the DesignRequest
+Do not infer PUE or the cooling architecture from a GPU name. Read those
+values from the selected basis and the actual engine result. Include
+`pueTarget` only when supplied by the user or a stated planning assumption.
 
-Required: `itLoadMw`, `rackDensityKw`, `gpuGen`, `siteAreaSqm`, `region`.
+## Design
 
-If the user gives incomplete inputs, fill defaults from what they DID say,
-state your assumptions explicitly, and proceed — don't interrogate them.
+Call `design` first with the canonical `DesignRequest` object. Parse results
+from `summary`; sizing values are not top-level response fields. Report at
+least:
 
-Engine baseline rack densities (use these as defaults, not marketing numbers):
+- `summary.rackCount`, deployment-unit and physical-block counts when present
+- `summary.pueDesign` and `summary.pueAnnualBasis`
+- `summary.facilityDemandMw`, `summary.mvaTotal`, and source-capacity fields
+- cooling split, CDU count, cost, schedule, and commercial evidence status
+- `warnings`, `engineVersion`, and `requestId`
 
-- `hopper` (H100/H200): **80 kW/rack**
-- `blackwell` (GB200 NVL72): **120 kW/rack**, liquid cooling required
-- `rubin` (Vera Rubin NVL72): **150 kW/rack**, liquid required; thermal profile
-  exceeds Blackwell — never default it to air cooling
+Treat `mvaTotal` as operating apparent demand. Do not multiply it by N+1 or 2N
+again; source redundancy and installed/firm capacity are separate fields.
+Treat costs as planning allowances unless `commercialVerifiedReady` is true.
 
-PUE comes from the GPU **generation baseline**, not from the cooling mode:
-hopper ≈ 1.28, blackwell ≈ 1.23, rubin ≈ 1.20 (design basis). The
-`options.coolingMode` field (`air` / `hybrid` / `liquid`) drives the
-**cooling-capacity reserve factor**, not PUE — do not describe cooling modes
-as "air = PUE 1.4" style equivalences.
+## Validate
 
-`region`: metropolitan = dense urban / capital region (Seoul, Tokyo,
-Frankfurt, NoVA); regional = suburban / industrial park. Drives utility cost
-and substation availability assumptions — ask only if truly ambiguous.
+Call `validate` with `{ "rawInput": <the same DesignRequest> }`, or pass a
+previous tool-returned summary as `designSummary`. Version 0.2.4 does not
+accept `sessionId`; private EngineSession validation stays in the signed-in
+AIDC workflow.
 
-### Step 2 — `design`
+- `blocking`: explain the finding, adjust the input, rerun design, and
+  revalidate. Do not call layout while a blocking finding remains.
+- `warn`: keep the design viable and carry the warning into the report.
+- `info`: preserve as context.
+- `rfis`: list as unresolved project evidence, not as engine failures.
 
-Numbers live under `summary.*`, not at the top level. Key fields:
+Never promote a warning to a rejection or soften a blocking finding. Use the
+returned `verdict` and `graphVerdict` when present.
 
-- `summary.rackCount` — **main compute racks** (e.g. VR200 NVL72 zones × 8)
-- `summary.physicalRackBlockCount` — all rendered physical blocks (compute +
-  support); always larger than rackCount. Never present these two as a
-  contradiction — they measure different things.
-- `summary.pueDesign` / `summary.pueAnnualBasis`
-- `summary.mvaTotal` — **operating apparent demand** (MVA at power factor).
-  Redundancy is expressed separately via source topology fields
-  (`sourceInstalledMva`, `sourceFirmMva`, `sourceTopologyAlias` e.g. "4M3").
-  NEVER multiply `mvaTotal` by N+1/2N again — that double-counts redundancy.
-- `summary.totalCostKrw` / `summary.totalMonths` — planning numbers. If
-  `summary.commercialVerifiedReady !== true`, present cost strictly as a
-  **planning allowance**, never as a vendor quote or estimate.
-- `warnings` — surface verbatim; they are engine-level caveats, not noise.
+## Layout
 
-### Step 3 — `validate`
+After validation has no blocking finding, call `layout` with
+`{ "design": <the same DesignRequest> }`. Add
+`siteCentroid: {"lat": ..., "lng": ...}` only when coordinates are known.
 
-Findings are severity-classified:
+Distinguish these counts instead of declaring a mismatch automatically:
 
-- **blocking** — design basis not viable as stated. Explain, propose a
-  concrete input change (density, redundancy, cooling mode, site area),
-  re-run design, re-validate. Do NOT proceed to layout with open blockers.
-- **warn** — viable but flagged; carry into the report as risks.
-- **info** — context; fold into the report.
+- design `summary.rackCount`: main compute-rack count after profile snapping
+- layout `rackPlan.rackCount`: rendered physical rack blocks
+- `deploymentUnitCount`: profile-specific deployment or planning units
+- `previewTruncated`: whether the returned block preview was capped
 
-Treat findings by their declared severity: do not promote `warn` to a hard
-rejection on your own, and do not soften `blocking`.
+Summarize hall dimensions, rows, columns, main racks, physical blocks, and
+site blocks. Carry `warnings` into the report.
 
-`rfis` are open engineering questions the engine cannot resolve from the
-inputs (utility interconnect, AHJ, water, seismic…). Present them as an RFI
-list — they are the "next questions for the project team" and keep the report
-honest rather than falsely complete. A `PENDING` verdict with zero blocking
-findings is a normal, workable concept-stage outcome.
+## Report
 
-### Step 4 — `layout`
+End a full run with:
 
-Call with `{ "design": DesignRequest }` (add `siteCentroid` lat/lng for a
-georeferenced site plan). Read:
-
-- `rackPlan` — hall dimensions (mm), rows × cols grid, per-block positions/kW.
-  `rackPlan.rackCount` counts **rendered physical rack blocks** — compare it
-  to `summary.physicalRackBlockCount`, not to `summary.rackCount`.
-- `sitePlan` — block-level site layout (substation, generators, cooling
-  plant, halls, parking, roads) in percentage coordinates.
-
-Summarize as: halls × rows × cols, hall footprint in meters, block list.
-
-### Step 5 — Report
-
-ALWAYS end a full-workflow run with this structure:
-
-```
-# [Site / project name] — AI DC Design Basis
-## Executive summary        (2–3 sentences: fits / doesn't fit, headline numbers)
-## Design basis             (inputs + assumptions you filled in, clearly marked)
-## Sizing results           (main racks, physical blocks, PUE, MVA, cost, schedule)
-## Validation findings      (blocking → resolved how; warn; info)
-## Open RFIs                (engine RFIs + anything project-specific)
-## Layout summary           (halls, grid, key blocks)
-## Caveats
+```text
+# [Project] - AI Data Center Design Basis
+## Executive summary
+## Inputs and assumptions
+## Sizing results
+## Validation findings
+## Open RFIs
+## Layout summary
+## Evidence and caveats
 ```
 
-In Caveats, always state: local utility tariff and interconnect, AHJ/permits,
-climate, water availability, seismic, security, and operations assumptions
-are project-specific validation inputs — the engine result is a design basis,
-not a permit-ready design. If cost was shown, restate its evidence status
-(planning allowance unless `commercialVerifiedReady === true`). Include the
-citation (aidc-ai.io) and `engineVersion`.
+State that utility interconnect, AHJ and permits, climate, water, seismic,
+security, vendor performance curves, price, and lead time remain
+project-specific evidence. Include the AIDC-AI.IO citation and response
+`engineVersion`.
 
-## Judgment rules
+## Operational Limits
 
-- Medium-voltage context: the engine handles MV upstream worldwide — 22.9 kV
-  (Korea), 11/33 kV (EU typical), 13.8/34.5 kV (US typical). If the user
-  names a country, mention the applicable MV convention in the report.
-- Comparative studies (e.g. "Blackwell vs Rubin on the same site") are a
-  strong use of this skill: run design+validate per scenario with the same
-  canonical request shape, then present a side-by-side table.
-- Rate limits: anonymous 10 req/hour, registered (`AIDC_API_KEY`, requires
-  aidc-mcp-server ≥ 0.2.2) 100 req/hour, 20 req/min burst. For multi-scenario
-  studies on an anonymous key, plan the minimum number of calls before
-  starting and tell the user if the study won't fit the budget.
-- If a tool call errors with a rate-limit or auth message, report it plainly
-  and suggest setting `AIDC_API_KEY`; don't silently retry.
+This local plugin runs `aidc-mcp-server@0.2.4` over stdio. A registered key
+is required: the launcher uses `AIDC_API_KEY`, or the configured macOS
+Keychain item. Authentication is attached by the MCP process, never through
+`customInputs` or other tool arguments. Do not print or request key values
+in chat. Plan comparisons before calling tools and preserve rate-limit errors.
+
+A successful authenticated response is not a design approval. Report the
+returned `verdict`, `graphVerdict`, RFIs, and preview restrictions without
+turning `PENDING` into PASS.
