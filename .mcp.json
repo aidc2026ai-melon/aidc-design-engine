@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "aidc-design-engine": {
-      "command": "npx",
-      "args": ["-y", "aidc-mcp-server"]
+      "command": "node",
+      "args": [
+        "-e",
+        "const { execFileSync, spawn } = require(\"node:child_process\");\nlet key = (process.env.AIDC_API_KEY || \"\").trim();\nif (!key && process.platform === \"darwin\") {\n  try {\n    key = execFileSync(\"/usr/bin/security\", [\"find-generic-password\", \"-a\", \"aidc-design-engine\", \"-s\", \"AIDC MCP API Key\", \"-w\"], { encoding: \"utf8\", stdio: [\"ignore\", \"pipe\", \"ignore\"] }).trim();\n  } catch {\n    process.stderr.write(\"AIDC MCP: configured API key is unavailable in macOS Keychain.\\n\");\n    process.exit(1);\n  }\n}\nif (!key) {\n  process.stderr.write(\"AIDC MCP: a registered API key must be configured before startup.\\n\");\n  process.exit(1);\n}\nconst windows = process.platform === \"win32\";\nconst child = spawn(windows ? \"cmd.exe\" : \"npx\", windows ? [\"/d\", \"/s\", \"/c\", \"npx -y aidc-mcp-server@0.2.4\"] : [\"-y\", \"aidc-mcp-server@0.2.4\"], {\n  env: { ...process.env, ...(key ? { AIDC_API_KEY: key } : {}) },\n  stdio: \"inherit\",\n  windowsHide: true\n});\nchild.on(\"error\", () => { process.stderr.write(\"AIDC MCP: server could not be started.\\n\"); process.exit(1); });\nchild.on(\"exit\", (code) => process.exit(code == null ? 1 : code));\nfor (const signal of [\"SIGINT\", \"SIGTERM\"]) process.on(signal, () => child.kill(signal));\n"
+      ]
     }
   }
 }

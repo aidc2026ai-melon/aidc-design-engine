@@ -1,0 +1,23 @@
+{
+  "featureId": "F-MCP-PUBLIC-PLUGIN-20260928",
+  "baseCommit": "d487271564480670d1d243bdd152488d120b350d",
+  "reason": "Preserve client transport identities while documenting required registered credentials and updating the Claude package pin and secure startup path.",
+  "files": [
+    ".claude-plugin/plugin.json",
+    ".github/workflows/quality.yml",
+    ".mcp.json",
+    "README.md",
+    "plugins/aidc-design-engine/.codex-plugin/plugin.json",
+    "plugins/aidc-design-engine/README.md",
+    "plugins/aidc-design-engine/skills/aidc-design-engine/SKILL.md",
+    "recovery/exact-pickup-manifest.json",
+    "skills/aidc-design-engine/SKILL.md",
+    "tests/plugin-startup.test.cjs"
+  ],
+  "verificationStatus": "LOCAL_GATES_PASSED; NPM_024_PUBLICATION_REQUIRED_BEFORE_MERGE",
+  "verificationEvidence": {
+    "tests": "Four focused startup tests, JSON/manifest/skill validation and diff checks passed.",
+    "reviews": "Independent static and focused reviews passed. Codex retains its remote transport. Windows/Linux startup branches are unit-tested, not native UI verified.",
+    "runtime": "The underlying 0.2.4 npm tarball was isolated-installed and all three registered stdio calls succeeded; published npx read-back pending."
+  }
+}

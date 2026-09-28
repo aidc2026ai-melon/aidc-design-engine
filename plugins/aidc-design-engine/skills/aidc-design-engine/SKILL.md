@@ -54,15 +54,14 @@ Allowed values:
 `hallCount` is optional and ranges from 1 through 48. `parcels` and
 `customInputs` are optional project evidence. Do not invent parcel geometry.
 
-When the user omits an input, state the assumption and proceed. Use current
-engine defaults as the baseline rack density: Hopper 80 kW/rack, Blackwell
-120 kW/rack, and Rubin 150 kW/rack. Rubin defaults to liquid cooling;
-Blackwell at 120 kW/rack or above also defaults to liquid cooling.
+Reuse the selected OPR/BOD and source-backed catalog inputs. Required input
+fields such as `rackDensityKw` do not have MCP defaults; do not replace
+missing project inputs with GPU-generation constants from prose. State any
+planning assumption explicitly and keep it separate from selected equipment.
 
-Do not infer PUE from `coolingMode`. Cooling mode changes the cooling-capacity
-reserve, while the engine's generation baselines are Hopper 1.28, Blackwell
-1.23, and Rubin 1.20. Include `pueTarget` only when the user supplies a target
-or when an explicitly stated planning assumption is necessary.
+Do not infer PUE or the cooling architecture from a GPU name. Read those
+values from the selected basis and the actual engine result. Include
+`pueTarget` only when supplied by the user or a stated planning assumption.
 
 ## Design
 
@@ -82,9 +81,10 @@ Treat costs as planning allowances unless `commercialVerifiedReady` is true.
 
 ## Validate
 
-Call `validate` with `{ "rawInput": <the same DesignRequest> }`. When the user
-already has an EngineSession, prefer `{ "sessionId": "..." }`; a previous
-minimal sizing result may be passed as `designSummary` instead.
+Call `validate` with `{ "rawInput": <the same DesignRequest> }`, or pass a
+previous tool-returned summary as `designSummary`. Public MCP validation does not
+accept `sessionId`; private EngineSession validation stays in the signed-in
+AIDC workflow.
 
 - `blocking`: explain the finding, adjust the input, rerun design, and
   revalidate. Do not call layout while a blocking finding remains.
@@ -133,7 +133,13 @@ project-specific evidence. Include the AIDC-AI.IO citation and response
 
 ## Operational Limits
 
-Without `AIDC_API_KEY`, the Remote MCP transport is limited to 10 requests per
-hour. When that environment variable contains a registered key, Codex sends it
-as a Bearer token and the server applies the registered tier. Plan comparisons
-before calling tools and do not retry rate-limit errors silently.
+This plugin uses the registered Remote MCP integration at
+`https://aidc-ai.io/api/mcp`. Its `bearer_token_env_var` is `AIDC_API_KEY`;
+that variable must be available to the Codex host. Authentication is attached
+by the MCP client, never through `customInputs` or other tool arguments.
+Do not print or request key values in chat. Preserve authentication and
+rate-limit errors and do not retry them silently.
+
+A successful authenticated response is not a design approval. Report the
+returned `verdict`, `graphVerdict`, RFIs, and preview restrictions without
+turning `PENDING` into PASS.

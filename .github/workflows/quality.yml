@@ -1,0 +1,14 @@
+name: Plugin contract
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Validate metadata and credential startup
+        run: node --test --test-concurrency=1 tests/plugin-startup.test.cjs

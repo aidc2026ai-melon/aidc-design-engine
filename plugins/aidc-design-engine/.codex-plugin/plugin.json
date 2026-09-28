@@ -1,6 +1,6 @@
 {
   "name": "aidc-design-engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Deterministic AI data-center sizing, validation, and layout through the AIDC-AI.IO design engine.",
   "author": {
     "name": "AIDC-AI.IO",

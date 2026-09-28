@@ -1,69 +1,76 @@
 # AIDC Design Engine Plugin
 
-Size, validate, and lay out AI data centers from Claude or Codex - for NVIDIA
-Hopper, Blackwell (GB200 NVL72), and Rubin (Vera Rubin NVL72) deployments.
-Backed by the deterministic engineering engine at [aidc-ai.io](https://aidc-ai.io).
+Use the AIDC-AI.IO engine to size, validate, and lay out AI data centers from
+Claude or Codex. Claude runs the published `aidc-mcp-server@0.2.4` package
+over local stdio; Codex retains its direct Streamable HTTP connection. Both
+clients expose `design`, `validate`, and `layout` and preserve engine warnings,
+RFIs, and request IDs.
 
 ## Install
 
-### Claude
+Claude Code:
 
 ```bash
 claude plugin marketplace add aidc2026ai-melon/aidc-design-engine
 claude plugin install aidc-design-engine@aidc-ai
 ```
 
-### Codex
+Codex:
 
 ```bash
 codex plugin marketplace add aidc2026ai-melon/aidc-design-engine
 codex plugin add aidc-design-engine@aidc-ai
 ```
 
-## What's inside
+After updating an installed plugin, refresh/restart the client as required
+and open a new chat so it loads the new tool configuration.
 
-| Component | Purpose |
-|---|---|
-| MCP server `aidc-design-engine` | Three tools: `design` (rack count, PUE, MVA, cost, schedule), `validate` (electrical/cooling/layout/safety rule QA with severity-classified findings and RFIs), and `layout` (rack plan in mm plus site plan blocks) |
-| Skill `aidc-design-engine` | Encodes one canonical DesignRequest across design -> validate -> layout -> report, GPU-generation density/PUE defaults, validation gating, rack-count and MVA semantics, and a standard design-basis report template |
-| Codex marketplace | Connects directly to `https://aidc-ai.io/api/mcp`; the Claude plugin continues to use `npx aidc-mcp-server` |
+## Requirements and authentication
 
-## Requirements
+- Claude local stdio: Node.js 18 or later. Codex Remote MCP needs no local Node.js.
+- Internet access to `https://aidc-ai.io`.
+- A registered AIDC API key, available through [Contact](https://aidc-ai.io/contact).
+- Configure the key for the MCP server process; credentials are never
+  `design`, `validate`, `layout`, or `customInputs` arguments.
 
-- Claude: Node.js >= 18 (the MCP server runs via `npx -y aidc-mcp-server`)
-- Codex: no local Node.js requirement; it uses the Remote MCP endpoint
-- Internet access to `https://aidc-ai.io`
+For Claude local stdio, the launcher first reads `AIDC_API_KEY` from its process environment. On
+macOS, if that variable is absent, it reads an existing Keychain application
+password with service `AIDC MCP API Key` and account `aidc-design-engine`.
+A missing credential stops startup with a setup error; anonymous calculations
+are not supported. API errors and rate limits remain visible.
 
-## Authentication (optional)
+Claude on macOS can store the registered key under that Keychain service and
+account using Keychain Access. The key value stays outside the plugin and
+chat. Windows and Linux users must supply `AIDC_API_KEY` through their
+client's private MCP environment/credential configuration. Some desktop
+clients do not inherit shell environment variables; verify the MCP process
+receives the variable rather than assuming a terminal export is sufficient.
+If the client has no plugin credential configuration, use the package's
+[private per-user MCP configuration](https://www.npmjs.com/package/aidc-mcp-server)
+and disable the duplicate plugin server. Do not put real keys into this
+repository, uploaded plugin files, examples, or messages.
 
-Anonymous use is allowed (10 requests/hour). The Codex Remote MCP transport
-maps the following environment variable to a Bearer token. Claude stdio also
-uses it when the installed `aidc-mcp-server` release supports bearer
-forwarding:
+## Tools and evidence
 
-```
-AIDC_API_KEY=aidc_live_...
-```
+1. `design`: send the selected design inputs and read sizing from `summary`.
+2. `validate`: send the same inputs as `rawInput`, or the returned `designSummary`.
+   Private EngineSession IDs stay in the signed-in AIDC workflow.
+3. `layout`: send the same inputs nested under `design` after checking blocking findings.
 
-Claude stdio key forwarding requires `aidc-mcp-server` 0.2.2 or later; npm
-`latest` is 0.2.2 as of 2026-07-14. The Codex Remote MCP transport forwards
-the same variable directly as a Bearer token.
+Reuse the selected OPR/BOD/catalog inputs; do not turn illustrative numbers
+or GPU-generation names into new rack, power, cooling, or equipment defaults.
+`ok: true` confirms a successful tool response. It does not replace engineering
+approval or change `PENDING` into PASS.
 
-## Example prompts
+## Codex and other remote clients
 
-> Can I fit 60 MW of GB200 on a 20,000 m² site near Seoul?
+The Codex plugin uses `bearer_token_env_var: "AIDC_API_KEY"`; supply that
+variable securely to the Codex host before connecting. A local Keychain item
+is not automatically loaded into the remote client. Other hosted MCP clients can use `https://aidc-ai.io/api/mcp`
+with their registered Bearer credential. This is a separate transport from
+the npm package. npm package versions, plugin versions, and the remote
+engine/API version identify different artifacts and need not match.
 
-> Design a 50 MW Vera Rubin data center on a 15,000 m² regional site with
-> liquid cooling, validate it, and give me the rack layout.
-
-> Compare Blackwell vs Rubin on the same 30,000 m² site at 2N redundancy.
-
-## Notes
-
-- Engine results are a design basis, not a permit-ready design — local
-  utility, AHJ, climate, water, seismic, and security assumptions remain
-  project-specific validation inputs.
-- Every response includes the engine version and a citation to aidc-ai.io.
-- Terms: https://aidc-ai.io/terms · Privacy: https://aidc-ai.io/privacy
+Terms: https://aidc-ai.io/terms · Privacy: https://aidc-ai.io/privacy
 
 MIT © AIDC-AI.IO
