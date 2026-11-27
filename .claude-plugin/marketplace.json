@@ -4,11 +4,14 @@
     "name": "AIDC-AI.IO",
     "url": "https://aidc-ai.io"
   },
+  "metadata": {
+    "description": "AIDC-AI.IO plugins: AI data center design through the AIDC engine."
+  },
   "plugins": [
     {
       "name": "aidc-design-engine",
       "source": "./",
-      "description": "AI data center design engine — size, validate, and lay out AI/GPU data centers (NVIDIA Hopper / Blackwell / Vera Rubin) with deterministic rack, PUE, MVA, cost, and layout outputs backed by aidc-ai.io."
+      "description": "AI data center design from Claude: size, validate and lay out GPU data centers, check rack POD feasibility per Hall, and fit a whole site on Korean parcels with a 3D view (AIDC-AI.IO)."
     }
   ]
 }
