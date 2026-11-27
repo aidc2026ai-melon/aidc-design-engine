@@ -10,5 +10,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Validate metadata and credential startup
+      - name: Validate plugin metadata and transports
         run: node --test --test-concurrency=1 tests/plugin-startup.test.cjs
